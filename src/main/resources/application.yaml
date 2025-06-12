@@ -1,0 +1,27 @@
+spring :
+  application:
+    name: user-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/batch14_user_management
+    username: postgres
+    password: shas610
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        ddl: none
+        ddl-auto: none
+    show-sql: true
+    generate-ddl: false
+
+server:
+  port: 8001
+  servlet:
+    context-path: /user-service
+
+jwt:
+  secret-key: KOF9406KFOIE839EM#+]2L3\5=11J3OP)1
