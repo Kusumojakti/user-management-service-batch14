@@ -1,7 +1,10 @@
 package com.batch14.user_management_service.service.impl
 
+import com.batch14.user_management_service.domain.constant.Constant
 import com.batch14.user_management_service.domain.dto.request.RegRegisterDto
 import com.batch14.user_management_service.domain.dto.request.ReqLoginDto
+import com.batch14.user_management_service.domain.dto.request.ReqSoftDeleteUserDto
+import com.batch14.user_management_service.domain.dto.request.ReqUpdateUserDto
 import com.batch14.user_management_service.domain.dto.response.ResLoginDto
 import com.batch14.user_management_service.domain.dto.response.RestGetAllUserGto
 import com.batch14.user_management_service.domain.dto.response.RestGetUserByIdDto
@@ -12,6 +15,8 @@ import com.batch14.user_management_service.repository.MasterUserRepository
 import com.batch14.user_management_service.service.MasterUserService
 import com.batch14.user_management_service.utils.BCryptUtil
 import com.batch14.user_management_service.utils.JwtUtils
+import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.Optional
 
@@ -20,7 +25,8 @@ class MasterUserServiceImpl (
     private val masterUserRepository: MasterUserRepository,
     private val masterRoleRepository: MasterRoleRepository,
     private val jwtUtil: JwtUtils,
-    private val bcrypt: BCryptUtil
+    private val bcrypt: BCryptUtil,
+    private val httpServletRequest: HttpServletRequest
 
 ) : MasterUserService {
     override fun findAllActiveUsers(): List<RestGetAllUserGto> {
@@ -72,9 +78,20 @@ class MasterUserServiceImpl (
             throw CustomException("Username already exists!", 400)
         }
 
+        val hashPw = bcrypt.hash(req.password)
+//        val userRaw = MasterUserEntity(
+//            email = req.email,
+//            password = hashPw,
+//            username = req.username,
+//            isActive = true,
+//            isDelete = false,
+//        )
+
+        // ini masih ada lanjutanya
+
         val userRow = MasterUserEntity(
             email = req.email,
-            password = req.password,
+            password = hashPw,
             username = req.username,
             role = if(role.isPresent ) {
                 role.get()
@@ -116,4 +133,90 @@ class MasterUserServiceImpl (
 
         return ResLoginDto(token)
     }
+
+    override fun updateUser(req: ReqUpdateUserDto): RestGetAllUserGto {
+        val userId = httpServletRequest.getHeader(Constant.HEADER_USER_ID)
+
+        val user = masterUserRepository.findById(userId.toInt()).orElseThrow{
+            throw CustomException("User ID $userId not found",
+                HttpStatus.BAD_REQUEST.value())
+        }
+
+        var existingUser = masterUserRepository.findFirstByUsername(req.username)
+        if (existingUser.isPresent) {
+            if (existingUser.get().id != user.id){
+                throw CustomException(
+                    "Username telah terdaftar",
+                    HttpStatus.BAD_REQUEST.value()
+                )
+            }
+        }
+
+        val existingUserEmail = masterUserRepository.findFirstByEmail(req.email)
+        if (existingUserEmail != null) {
+            if (existingUserEmail.id == user.id){
+                throw CustomException(
+                    "Email telah terdaftar",
+                    HttpStatus.BAD_REQUEST.value()
+                )
+            }
+        }
+
+        user.email = req.email
+        user.username = req.username
+        user.updatedBy = userId
+
+        val result = masterUserRepository.save(user)
+
+        return RestGetAllUserGto(
+            id = result.id,
+            username = result.username,
+            email = result.email
+        )
+    }
+
+    override fun softDeleteUser(id: Int): RestGetAllUserGto {
+        val userRow = masterUserRepository.findById(id)
+            .orElseThrow { Exception("User not found with id: $id") }
+
+        userRow.isDelete = true
+        masterUserRepository.save(userRow)
+
+        val allUsers = masterUserRepository.findAll()
+        return RestGetAllUserGto(
+            id = userRow.id,
+            username = userRow.username,
+            email = userRow.email,
+            roleId = userRow.role?.id,
+            roleName = userRow.role?.name
+        )
+    }
+
+    override fun hardDeleteUser(id: Int): RestGetAllUserGto {
+        val userRole = httpServletRequest.getHeader(Constant.HEADER_USER_ROLE)
+        if (userRole != "admin") {
+            throw CustomException("You are not authorized to perform this action", HttpStatus.FORBIDDEN.value())
+        } else {
+            val userRow = masterUserRepository.findById(id)
+                .orElseThrow { Exception("User not found with id: $id") }
+
+            masterUserRepository.delete(userRow)
+
+            return RestGetAllUserGto(
+                id = userRow.id,
+                username = userRow.username,
+                email = userRow.email,
+                roleId = userRow.role?.id,
+                roleName = userRow.role?.name
+            )
+        }
+
+//        val user = masterUserRepository.findById(userId.toInt()).orElseThrow{
+//            throw CustomException("User ID $userId not found",
+//                HttpStatus.BAD_REQUEST.value())
+//        }
+
+    }
+
+
 }

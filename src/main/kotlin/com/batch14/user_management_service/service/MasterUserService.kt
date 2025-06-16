@@ -2,6 +2,8 @@ package com.batch14.user_management_service.service
 
 import com.batch14.user_management_service.domain.dto.request.RegRegisterDto
 import com.batch14.user_management_service.domain.dto.request.ReqLoginDto
+import com.batch14.user_management_service.domain.dto.request.ReqSoftDeleteUserDto
+import com.batch14.user_management_service.domain.dto.request.ReqUpdateUserDto
 import com.batch14.user_management_service.domain.dto.response.ResLoginDto
 import com.batch14.user_management_service.domain.dto.response.RestGetAllUserGto
 import com.batch14.user_management_service.domain.dto.response.RestGetUserByIdDto
@@ -15,4 +17,10 @@ interface MasterUserService {
     fun register(req: RegRegisterDto): RestGetAllUserGto
 
     fun login(Req: ReqLoginDto): ResLoginDto
+
+    fun updateUser(req: ReqUpdateUserDto): RestGetAllUserGto
+
+    fun softDeleteUser(id: Int): RestGetAllUserGto
+
+    fun hardDeleteUser(id: Int): RestGetAllUserGto
 }
