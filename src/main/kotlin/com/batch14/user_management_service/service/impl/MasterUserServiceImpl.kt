@@ -3,7 +3,6 @@ package com.batch14.user_management_service.service.impl
 import com.batch14.user_management_service.domain.constant.Constant
 import com.batch14.user_management_service.domain.dto.request.RegRegisterDto
 import com.batch14.user_management_service.domain.dto.request.ReqLoginDto
-import com.batch14.user_management_service.domain.dto.request.ReqSoftDeleteUserDto
 import com.batch14.user_management_service.domain.dto.request.ReqUpdateUserDto
 import com.batch14.user_management_service.domain.dto.response.ResLoginDto
 import com.batch14.user_management_service.domain.dto.response.RestGetAllUserGto
@@ -16,6 +15,7 @@ import com.batch14.user_management_service.service.MasterUserService
 import com.batch14.user_management_service.utils.BCryptUtil
 import com.batch14.user_management_service.utils.JwtUtils
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.Optional
@@ -46,6 +46,10 @@ class MasterUserServiceImpl (
         return result
     }
 
+    @Cacheable(
+        "getUserById",
+        key = "{#id}"
+    )
     override fun getUserById(id: Int): RestGetUserByIdDto {
         val user = masterUserRepository.findById(id)
             .orElseThrow{
@@ -74,20 +78,11 @@ class MasterUserServiceImpl (
         }
 
         val existingUserUsername = masterUserRepository.findFirstByUsername(req.username)
-        if (existingUserUsername != null) {
+        if (existingUserUsername.isPresent) {
             throw CustomException("Username already exists!", 400)
         }
 
         val hashPw = bcrypt.hash(req.password)
-//        val userRaw = MasterUserEntity(
-//            email = req.email,
-//            password = hashPw,
-//            username = req.username,
-//            isActive = true,
-//            isDelete = false,
-//        )
-
-        // ini masih ada lanjutanya
 
         val userRow = MasterUserEntity(
             email = req.email,
@@ -134,7 +129,9 @@ class MasterUserServiceImpl (
         return ResLoginDto(token)
     }
 
-    override fun updateUser(req: ReqUpdateUserDto): RestGetAllUserGto {
+    override fun updateUser(
+        req: ReqUpdateUserDto
+    ): RestGetAllUserGto {
         val userId = httpServletRequest.getHeader(Constant.HEADER_USER_ID)
 
         val user = masterUserRepository.findById(userId.toInt()).orElseThrow{

@@ -24,7 +24,7 @@ class JwtUtils {
         try {
             val signatureAlgorithm = SignatureAlgorithm.HS256
             val signingKey = Keys.hmacShaKeyFor(SECRET_KEY.toByteArray())
-            val exp = Date(System.currentTimeMillis() + 90000L)
+            val exp = Date(System.currentTimeMillis() + 300_000L)
 
             return Jwts.builder()
                 .setSubject(id.toString())

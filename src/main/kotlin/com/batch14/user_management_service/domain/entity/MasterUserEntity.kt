@@ -26,7 +26,7 @@ data class MasterUserEntity(
 //        sequenceName = "mst_users_id_seq",
 //        allocationSize = 1
 //    )
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", insertable = false, updatable = false)
     var id: Int = 0,
 
